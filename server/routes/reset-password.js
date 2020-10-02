@@ -1,3 +1,4 @@
+const rateLimiter = require('express-rate-limit');
 const isEmail = require('validator/lib/isEmail');
 const fs = require('fs');
 const path = require('path');
@@ -9,9 +10,17 @@ const helpers = require('../helpers');
 const resetPasswordPageTemplate = Handlebars.compile(String(fs.readFileSync(
   path.join(__dirname, '../templates/page-reset-password.handlebars'))));
 
+const rateLimitResetPassword = rateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3, // Limit up to 3 per IP
+  message: { // Error json sent
+    message: 'Too many requests. Please try again later.'
+  }
+});
+  
 module.exports = {
   attachRoute(app, recaptcha) {
-    app.post('/reset-password', recaptcha.middleware.verify, (req, res) => {
+    app.post('/reset-password', rateLimitResetPassword, recaptcha.middleware.verify, (req, res) => {
       if (req.recaptcha.error) {
         res.status(400);
         res.json({
