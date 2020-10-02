@@ -1,10 +1,19 @@
+const rateLimiter = require('express-rate-limit');
 const User = require('../models/user');
 const mail = require('../mail');
 const helpers = require('../helpers');
 
+const rateLimitRegister = rateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3, // Limit up to 3 per IP
+  message: { // Error json sent
+    message: 'Too many requests. Please try again later.'
+  }
+});
+
 module.exports = {
   attachRoute(app, recaptcha) {
-    app.post('/register', recaptcha.middleware.verify, async (req, res) => {
+    app.post('/register', rateLimitRegister, recaptcha.middleware.verify, async (req, res) => {
       if (req.recaptcha.error) {
         res.status(400)
         res.json({

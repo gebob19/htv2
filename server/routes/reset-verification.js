@@ -1,11 +1,20 @@
+const rateLimiter = require('express-rate-limit');
 const User = require('../models/user');
 const mail = require('../mail');
 const isEmail = require('validator/lib/isEmail');
 const helpers = require('../helpers');
 
+const rateLimitResetVerification = rateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3, // Limit up to 3 per IP
+  message: { // Error json sent
+    message: 'Too many requests. Please try again later.'
+  }
+});
+
 module.exports = {
   attachRoute(app, recaptcha) {
-    app.get('/verification/:token', (req, res) => {
+    app.get('/verification/:token', rateLimitResetVerification, (req, res) => {
       const token = req.params.token;
 
       User.findOne({
